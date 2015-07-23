@@ -1,0 +1,7 @@
+bistro: 2 5 15 0.006sec 153 50 0.3 0.22
+bistro1:2 5 15 0.006sec 8 calculation 0.28 0.23
+classroom: 2 3 10 0.007sec 9 calculation 45 0.58 0.20
+classroom1: 2 3 10 0.007sec 9 calculation
+clothing store:2 5 16 0.006sec 8 calculation 47 0.9 0.08
+clothing store1:2 5 16 0.007sec 8 calculation
+toy shop: 2 5 16 0.008sec 8 calculation 40 89 0.47 0.21
