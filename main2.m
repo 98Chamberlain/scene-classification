@@ -61,7 +61,7 @@ for i = 1:size(prob_test_data,2)
     scn_index = root_s(ceil(i/28));
         
         % calculate the probability of labels
-        sum_prob = sumProb_svm( prob_test_data(:,i) , model , mf , nrm );
+        sum_prob = sumProb_svm( testing_SR(i,:)' , model , mf , nrm );
         
 %         % without relation
 %         [M,I] = max(prob_testing_data(:,i));
