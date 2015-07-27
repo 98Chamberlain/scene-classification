@@ -12,7 +12,7 @@ i = 1;
 result = [1];
 value = [];
 i_list = 1;
-max_result = [1]; % for while loop �o�O�U�@�h�Ҧ��i�઺���p
+max_result = [1]; % for while loop 
 while( ~isempty( max_result ) )
 
     max_result = [];
@@ -41,11 +41,11 @@ while( ~isempty( max_result ) )
     
     
     % determine the best path
-    if isempty(h_list) % �Y�O�� �O�� max_result 
+    if isempty(h_list) % maintain max_result 
         
     else
         h_len = length(h_list);
-        if h_len == 1; % �n�M�w�n���n�~��U�h
+        if h_len == 1; % 
             if (sum_prob(h_list)./sum_prob(i)) >= thr % threshold
                 max_result = [max_result , h_list(1)];
                 max_prob = prod( exp(sum_prob([result,h_list])) );
@@ -94,12 +94,12 @@ while( ~isempty( max_result ) )
                         valid_m(1,r) = isValid(adj_mat,index,p_list(p1),r_list(r));
                     end
                         
-                    if ( prod(valid_m) == 1 ) % �Y�O OK ���ݯ�_�[�J
+                    if ( prod(valid_m) == 1 ) % 
                         prob_tmp = prod( exp(sum_prob([result,r_list,p_list(p1)])) );
                         if ( prob_tmp > prod( exp(sum_prob([result,r_list])) ) ) 
                             r_list = [r_list , p_list(p1)];
                         end
-                    else % �Y�O�� OK ���A�ݦ��S���񤧫e�� result �n�A�����n�N����
+                    else % 
                         prob_tmp = prod( exp(sum_prob([result,p_list(p1)])) );
                         if ( prob_tmp > prod( exp(sum_prob([result,r_list])) ) ) 
                             r_list = p_list(p1);
@@ -108,7 +108,7 @@ while( ~isempty( max_result ) )
                 end
             end
                 max_result = [max_result , r_list];
-%                 for h2 = h1+1:h_len % problem �̦h�N��Ӥ��� �n�ѨM�I�w�ѨM
+%                 for h2 = h1+1:h_len % problem
 %                     index = zeros(len,1);
 %                     index([result,h_list(h1),h_list(h2)]) = 1;
 %                     if ( ~isValid(adj_mat,index,h_list(h1),h_list(h2)) )

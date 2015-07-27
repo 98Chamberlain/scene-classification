@@ -16,38 +16,52 @@ adj_mat = make_SceneMatrix();
 load('./statistic/feature_data.mat');
 % fc8_testing_data = fc8_data(:,train_amt+1:data_len,:);
 % fc8_testing_data = fc8_testing_data(:,:);
-prob_testing_data = prob_data(:,train_amt+1:data_len,:);
-prob_testing_data = prob_testing_data(:,:);
+% prob_testing_data = prob_data(:,train_amt+1:data_len,:);
+% prob_testing_data = prob_testing_data(:,:);
 
 % set ground truth
 % groundtruth = {[1],[1,2],[1,3],[1,3,4],[1,5],[1,2,6],[1,2,7],[1,2,8],[1,2,9],[1,3,10],[1,3,4,11],[1,3,4,12],...
 %     [1,2,6,13],[1,2,6,14],[1,2,6,15],[1,2,6,16],[1,2,7,17],[1,2,7,18],[1,2,8,19],[1,2,8,20],[1,2,21],[1,2,22],...
 %     [1,3,10,23],[1,3,10,24],[1,3,10,25],[1,3,10,26],[1,3,10,27],[1,3,10,28],[1,3,4,11,29],[1,3,4,11,30],[1,3,4,12,31],...
 %     [1,3,4,12,32],[1,3,4,12,33],[1,3,4,12,34],[1,3,4,12,35],[1,3,36],[1,3,37],[1,3,38],[1,3,39],[1,3,40]};
-
 load('./gt_scene.mat'); % gt_scene , groundtruth
 
+% data pre-process
+root_s = [1,2,3,5:1:22,24,25,26,28:1:38,40:1:49,51:1:63,65,66,...
+    67,69:1:75,77:1:81,83:1:94,96:1:99,101:1:119,121:1:138,140,142,143,145,...
+    147,148,150:1:158,160,162,163,164,166:1:172,174:1:185,189,190,194,195,196,...
+    198,199,201,202,205];
+prob_train_data = prob_data(:,1:train_amt,root_s);
+prob_train_data = prob_train_data(:,:);
+prob_test_data = prob_data(:,train_amt+1:data_len,root_s);
+prob_test_data = prob_test_data(:,:);
+
+% % sparse-coding representation
+[ training_SR , testing_SR , D ] = sparse_coding( prob_train_data , prob_test_data );
+
 % % training
-% [model,mf,nrm] = prob_SVM();
+[model,mf,nrm] = prob_SVM( training_SR );
 
 acc = [];
 FP = [];
 FN = [];
 TP = [];
 TN = [];
+tmp = repmat(root_s,[ (data_len-train_amt) , 1 ]);
+scn = tmp(:);
+scn = scn';
 scene_acc = zeros(205,1);
 scene_FP = zeros(205,1);
 time = [];
-for i = 1:size(prob_testing_data,2)
+for i = 1:size(prob_test_data,2)
 % for i = (123-1)*28+1:123*28
 % for i = 28:56
 
 % data = hdf5read(['./statistic/toyshop/',d(i).name],'dataset_1');
-    scn_index = ceil(i/28);
-    if gt_scene(scn_index) ~= 0
+    scn_index = root_s(ceil(i/28));
         
         % calculate the probability of labels
-        sum_prob = sumProb_svm( prob_testing_data(:,i) , model , mf , nrm );
+        sum_prob = sumProb_svm( prob_test_data(:,i) , model , mf , nrm );
         
 %         % without relation
 %         [M,I] = max(prob_testing_data(:,i));
@@ -64,7 +78,7 @@ for i = 1:size(prob_testing_data,2)
 %         time = [time ,toc];
         
         % use prob feature
-        feature = prob_testing_data(:,i);
+        feature = prob_test_data(:,i);
         tic
         result = searchBest_hr(adj_mat,sum_prob,feature,model,mf,nrm);
         time = [time ,toc];
@@ -108,7 +122,5 @@ for i = 1:size(prob_testing_data,2)
 % toc
 
         display(['the result is: ' , t.total_label(result,2)']);
-        
-    end
         
 end

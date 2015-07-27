@@ -1,6 +1,6 @@
-function [model,mf,nrm] = prob_SVM()
+function [model,mf,nrm] = prob_SVM( training_SR )
 
-load('../statistic/feature_data.mat');
+% load('./statistic/feature_data.mat');
 % prob_data 205*128*205
 % fc8_data
 
@@ -12,6 +12,7 @@ load('../gt_scene.mat');
 % groundtruth 1*40 cell
 % gt_scene 1*205 double
 
+% gt = 205 * 40
 gt = zeros(nScene,nLabel);
 for i = 1:nScene
     if i == 94
@@ -34,18 +35,20 @@ root_s = [1,2,3,5:1:22,24,25,26,28:1:38,40:1:49,51:1:63,65,66,...
     147,148,150:1:158,160,162,163,164,166:1:172,174:1:185,189,190,194,195,196,...
     198,199,201,202,205];
 
-prob_train_data = prob_data(:,1:train_amt,root_s);
-prob_train_data = prob_train_data(:,:);
-% nFeature * nTrain
+% training_SR : m*p
+% m : number of training data
+% p : dimension of sparse representation
 
 % ----- Training -----
+addpath('../Research_Toolkit/SVM/libsvm-3.20/matlab');
+
 model{1,40} = [];
 mf{1,40} = [];
 nrm{1,40} = [];
 tmp = repmat(root_s,[train_amt,1]);
 lb_tmp = tmp(:);
 
-features = prob_train_data';
+features = training_SR;
 for i = 1:nLabel
     label = gt( lb_tmp , i);
     [model{i},mf{i},nrm{i}] = training_svm( features , label );
