@@ -30,8 +30,9 @@ addpath(genpath('../Research_Toolkit/spams-matlab/'));
 % nPart = 80;
 nTesting = size(testing_data,2);
 nTraining = size(training_data,2);
-nPart = 1;
-nDim = size(training_data,1); % default = 205
+nPart = 5;
+nDim = 41; % default = 205
+% nPart*nDim = 205
 K = 150;
 
 parD.lambda = 0.01;
