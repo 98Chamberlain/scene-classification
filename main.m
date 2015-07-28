@@ -27,7 +27,7 @@ prob_testing_data = prob_testing_data(:,:);
 load('./gt_scene.mat'); % gt_scene , groundtruth
 
 % % training
-[model_prob , mf_prob , nrm_prob ] = training(prob_data,train_amt);
+% [model_prob , mf_prob , nrm_prob ] = training(prob_data,train_amt);
 % [model_fc8 , mf_fc8 , nrm_fc8 ] = training(fc8_data,train_amt);
 % [model_cb , mf_cb , nrm_cb] = training([fc8_data;prob_data],train_amt);
 
@@ -36,11 +36,12 @@ FP = [];
 FN = [];
 TP = [];
 TN = [];
+% scn = [];
 scene_acc = zeros(205,1);
 scene_FP = zeros(205,1);
 time = [];
-for i = 1:size(prob_testing_data,2)
-% for i = (123-1)*28+1:123*28
+% for i = 1:size(prob_testing_data,2)
+for i = (8-1)*28+1:8*28
 
 % data = hdf5read(['./statistic/toyshop/',d(i).name],'dataset_1');
     scn_index = ceil(i/28);
@@ -57,21 +58,21 @@ for i = 1:size(prob_testing_data,2)
 %             result = groundtruth{gt_scene(I)};
 %         end
         
-%         % with constant threshold
-%         feature = prob_testing_data(:,i);
-%         tic
-%         result = searchBest_hr(adj_mat,sum_prob,feature,model_prob,mf_prob,nrm_prob);
-%         time = [time ,toc];
-        
-        % use prob feature
+        % with constant threshold
         feature = prob_testing_data(:,i);
         tic
         result = searchBest_hr(adj_mat,sum_prob,feature,model_prob,mf_prob,nrm_prob);
         time = [time ,toc];
+        
+%         % use prob feature
+%         feature = prob_testing_data(:,i);
+%         tic
+%         result = searchBest_hr(adj_mat,sum_prob,feature,model_prob,mf_prob,nrm_prob);
+%         time = [time ,toc];
               
-        % use fc8 feature
-        feature = fc8_testing_data(:,i);
-        result = searchBest_hr(adj_mat,sum_prob,feature,model_fc8,mf_fc8,nrm_fc8);
+%         % use fc8 feature
+%         feature = fc8_testing_data(:,i);
+%         result = searchBest_hr(adj_mat,sum_prob,feature,model_fc8,mf_fc8,nrm_fc8);
 
 %         % use prob+fc8 feature
 %         feature = [fc8_testing_data(:,i);prob_testing_data(:,i)];
@@ -92,6 +93,7 @@ for i = 1:size(prob_testing_data,2)
         else
             gt = groundtruth{gt_scene(scn_index)};
         end
+%        scn = [scn,scn_index];
         acc = [acc,length(intersect(result,gt))/length(gt)];
         FP = [FP,(length(setdiff(result,intersect(result,gt))))];
 %         acc = [acc,length(intersect(result,groundtruth{gt_scene(scn_index)}))/length(groundtruth{gt_scene(scn_index)})];

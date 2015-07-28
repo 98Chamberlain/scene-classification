@@ -1,6 +1,6 @@
 function [model,mf,nrm] = prob_SVM()
 
-load('../statistic/feature_data.mat');
+load('./statistic/feature_data.mat');
 % prob_data 205*128*205
 % fc8_data
 
@@ -8,7 +8,7 @@ nScene = 205;
 nLabel = 40;
 train_amt = 100;
 
-load('../gt_scene.mat');
+load('./gt_scene.mat');
 % groundtruth 1*40 cell
 % gt_scene 1*205 double
 
