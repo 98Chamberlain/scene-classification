@@ -26,6 +26,18 @@ load('./statistic/feature_data.mat');
 %     [1,3,4,12,32],[1,3,4,12,33],[1,3,4,12,34],[1,3,4,12,35],[1,3,36],[1,3,37],[1,3,38],[1,3,39],[1,3,40]};
 load('./gt_scene.mat'); % gt_scene , groundtruth
 
+% other relation
+groundtruth{41} = [1,2,6,7];
+gt_scene(94) = 41;
+groundtruth{42} = [1,3,4,38,39];
+gt_scene(123) = 42;
+groundtruth{43} = [1,3,4,12,31,35];
+gt_scene([48,66,91,103,162,164]) = 43;
+groundtruth{44} = [1,2,9];
+gt_scene([2,11,73]) = 44;
+groundtruth{45} = [1,2,5];
+gt_scene([30,31]) = 45;
+
 % data pre-process
 root_s = [1,2,3,5:1:22,24,25,26,28:1:38,40:1:49,51:1:63,65,66,...
     67,69:1:75,77:1:81,83:1:94,96:1:99,101:1:119,121:1:138,140,142,143,145,...
@@ -54,15 +66,17 @@ scene_acc = zeros(205,1);
 scene_FP = zeros(205,1);
 time = [];
 for i = 1:size(prob_test_data,2)
-% for i = (123-1)*28+1:123*28
-% for i = 28:56
-
-% data = hdf5read(['./statistic/toyshop/',d(i).name],'dataset_1');
+    
     scn_index = root_s(ceil(i/28));
-        
-        % calculate the probability of labels
-        sum_prob = sumProb_svm( testing_SR(i,:)' , model , mf , nrm );
-        
+    
+    feature = prob_test_data(:,i)';
+    [m2,~]=size(feature);
+    feature_t =(feature - ones(m2,1)*mf)*nrm;
+    predicted = svmpredict(1 , feature_t , model);
+    
+    result = groundtruth{predicted};
+
+    
 %         % without relation
 %         [M,I] = max(prob_testing_data(:,i));
 %         if gt_scene(I) == 0
@@ -77,11 +91,11 @@ for i = 1:size(prob_test_data,2)
 %         result = searchBest_hr(adj_mat,sum_prob,feature,model_prob,mf_prob,nrm_prob);
 %         time = [time ,toc];
         
-        % use prob feature
-        feature = prob_test_data(:,i);
-        tic
-        result = searchBest_hr(adj_mat,sum_prob,feature,model,mf,nrm);
-        time = [time ,toc];
+%         % use prob feature
+%         feature = prob_test_data(:,i);
+%         tic
+%         result = searchBest_hr(adj_mat,sum_prob,feature,model,mf,nrm);
+%         time = [time ,toc];
               
         
         if scn_index == 94
@@ -104,14 +118,6 @@ for i = 1:size(prob_test_data,2)
 %         FP = [FP,(length(result)-length(intersect(result,groundtruth{gt_scene(scn_index)})))/length(groundtruth{gt_scene(scn_index)})];
 %         FN = [FN,(length(groundtruth{gt_scene(scn_index)})-length(intersect(result,groundtruth{gt_scene(scn_index)})))/length(groundtruth{gt_scene(scn_index)})];
 %         scene_FP(scn_index) = scene_FP(scn_index) + (length(result)-length(intersect(result,groundtruth{gt_scene(scn_index)})))/length(groundtruth{gt_scene(scn_index)});
-        
-% % test
-% adj_mat = [0,1,1,1;
-%            0,0,1,1;
-%            0,1,0,1;
-%            1,1,1,0];
-% sum_prob = [0.5,0.3,0.2,0.5];
-% adj_mat = adj_mat(1:16,1:16);
 
 % ------- Brute force -------
 % result = searchBest_bf(adj_mat,sum_prob);
