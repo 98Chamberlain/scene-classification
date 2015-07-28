@@ -61,7 +61,7 @@ for i = 1:nPart
     %            n is the number of signals to decompose
     % Output param.D: double m x p matrix  ( d * k ?)
     %                 p is the number of elements in the dictionary
-    D(:,:,i) = mexTrainDL( training_data(:,(i-1)*nDim+1:i*nDim) , parD); 
+    D(:,:,i) = mexTrainDL( training_data((i-1)*nDim+1:i*nDim,:) , parD); 
     
     dic_sz = size(D,2);
     % Usage:  [A [path]]=mexLasso(X,D,param);
@@ -71,11 +71,11 @@ for i = 1:nPart
     %         D:  double m x p matrix   (dictionary)
     %               p is the number of elements in the dictionary
     % Output: A: double sparse p x n matrix (output coefficients) (k * n)
-    alpha = mexLasso( training_data(:,(i-1)*nDim+1:i*nDim) , D(:,:,i) , parS );
+    alpha = mexLasso( training_data((i-1)*nDim+1:i*nDim,:) , D(:,:,i) , parS );
     % databaseSR - n*(k*p)
     training_SR( :,(i-1)*dic_sz+1:i*dic_sz ) = alpha';
     
-    alpha = mexLasso( testing_data(:,(i-1)*nDim+1:i*nDim) , D(:,:,i) , parS );
+    alpha = mexLasso( testing_data((i-1)*nDim+1:i*nDim,:) , D(:,:,i) , parS );
     % querySR - m*(k*p)
     testing_SR( :,(i-1)*dic_sz+1:i*dic_sz ) = alpha';
     

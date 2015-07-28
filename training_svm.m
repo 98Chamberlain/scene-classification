@@ -1,7 +1,7 @@
 function [model,mf,nrm] = training_svm( features , label )
 
 
-addpath('../Machine Learning/SVM/libsvm-3.20/matlab');
+% addpath('../Machine Learning/SVM/libsvm-3.20/matlab');
 
 % features_a = [c_data(:,1:50),t_data(:,1:50)]';
 % label_a = [ones(1,50),zeros(1,50)]';
