@@ -33,7 +33,7 @@ nTraining = size(training_data,2);
 nPart = 1;
 nDim = 205; % default = 205
 % nPart*nDim = 205
-K = 250;
+K = 205;
 
 parD.lambda = 0.01;
 parD.K = K;
