@@ -31,16 +31,18 @@ root_s = [1,2,3,5:1:22,24,25,26,28:1:38,40:1:49,51:1:63,65,66,...
     67,69:1:75,77:1:81,83:1:94,96:1:99,101:1:119,121:1:138,140,142,143,145,...
     147,148,150:1:158,160,162,163,164,166:1:172,174:1:185,189,190,194,195,196,...
     198,199,201,202,205];
-prob_train_data = prob_data(:,1:train_amt,root_s);
-prob_train_data = prob_train_data(:,:);
-prob_test_data = prob_data(:,train_amt+1:data_len,root_s);
-prob_test_data = prob_test_data(:,:);
+% prob_train_data = prob_data(:,1:train_amt,root_s);
+% prob_train_data = prob_train_data(:,:);
+% prob_test_data = prob_data(:,train_amt+1:data_len,root_s);
+% prob_test_data = prob_test_data(:,:);
 
 % % sparse-coding representation
-[ training_SR , testing_SR , D ] = sparse_coding( prob_train_data , prob_test_data );
+% [ training_SR , testing_SR , D ] = sparse_coding( prob_train_data , prob_test_data );
 
 % % training
-[model,mf,nrm] = prob_SVM( training_SR );
+% [model,mf,nrm] = prob_SVM( training_SR );
+
+l = dir('../PlacesCNN/h5file/*.h5');
 
 acc = [];
 FP = [];
@@ -53,7 +55,7 @@ scn = scn';
 scene_acc = zeros(205,1);
 scene_FP = zeros(205,1);
 time = [];
-for i = 1:size(prob_test_data,2)
+for i = 1:length(l)
 % for i = (123-1)*28+1:123*28
 % for i = 28:56
 
@@ -61,7 +63,8 @@ for i = 1:size(prob_test_data,2)
     scn_index = root_s(ceil(i/28));
         
         % calculate the probability of labels
-        sum_prob = sumProb_svm( testing_SR(i,:)' , model , mf , nrm );
+        sum_prob = hdf5read(['../PlacesCNN/h5file/',l(i).name],'data');
+        % sum_prob = sumProb_svm( testing_SR(i,:)' , model , mf , nrm );
         
 %         % without relation
 %         [M,I] = max(prob_testing_data(:,i));
@@ -78,7 +81,10 @@ for i = 1:size(prob_test_data,2)
 %         time = [time ,toc];
         
         % use prob feature
-        feature = prob_test_data(:,i);
+        feature = 1;
+        model = 1;
+        mf = 1;
+        nrm = 1;
         tic
         result = searchBest_hr(adj_mat,sum_prob,feature,model,mf,nrm);
         time = [time ,toc];
