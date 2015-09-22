@@ -11,7 +11,8 @@ t = load('../total_label.mat');
 % load prob & fc8 data
 % prob_data: 205 x 2000 x 205 (feature x data x scene)
 % fc8_data : 205 x 2000 x 205 (feature x data x scene)
-load('../feature_data_2000.mat');
+% load('../feature_data_2000.mat'); % new 2000 data
+load('../statistic/feature_data.mat'); % old 128 data
 
 % load ground truth
 % groundtruth = {[1],[1,2],[1,3],[1,3,4],[1,5],[1,2,6],[1,2,7],[1,2,8],[1,2,9],[1,3,10],[1,3,4,11],[1,3,4,12],...
@@ -53,38 +54,69 @@ adj_mat(:,1) = zeros(40,1);
 E_e = logical(adj_mat);
 % E_e = E_e | E_e';
 
+tic;
+G = hex_setup(E_h, E_e);
+toc
+
 % data pre-process
 root_s = [1,2,3,5:1:22,24,25,26,28:1:38,40:1:49,51:1:63,65,66,...
     67,69:1:75,77:1:81,83:1:94,96:1:99,101:1:119,121:1:138,140,142,143,145,...
     147,148,150:1:158,160,162,163,164,166:1:172,174:1:185,189,190,194,195,196,...
     198,199,201,202,205];
+prob_test = prob_data(:,:,root_s);
+fc8_test = fc8_data(:,:,root_s);
+use_scene = length(root_s);
 
-for i = 1:5
-    
-    data = prob_data(:,i,1);
+acc = [];
+FP = [];
+for s_id = 1:use_scene
+    disp(['now process ',num2str(s_id),'/',num2str(use_scene),' scene']);
+    for data_id = 1:data_len
+    scn_index = root_s(s_id);
+    data = prob_data(:,data_id,s_id);
     sum_prob = sumProb_p(data);
-    label = gt_scene(1);
+    label = gt_scene(scn_index);
     
-    % show original data
-    fprintf('  raw scores: ');
-    fprintf('%.3f ', sum_prob);
-    fprintf('\n');
-    fprintf('  label: %d\n', label);
+%     % show original data
+%     fprintf('  raw scores: ');
+%     fprintf('%.3f ', sum_prob);
+%     fprintf('\n');
+%     fprintf('  label: %d\n', label);
     
     % run the hex graph
-    G = hex_setup(E_h, E_e);
-    back_propagate = true;
+    back_propagate = false;
     [loss, gradients, p_margin, p0] = hex_run(G, sum_prob, label, back_propagate);
     
-    % show the result
-    fprintf('Junction Tree results\n');
-    fprintf('  marginal probability: ');
-    fprintf('%.3f ', [p_margin; p0]);
-    fprintf('\n');
-    fprintf('  loss: %.3f\n', loss)
-    fprintf('  gradients: ');
-    fprintf('%.3f ', gradients');
-    fprintf('\n');
+%     % show the result
+%     fprintf('Junction Tree results\n');
+%     fprintf('  marginal probability: ');
+%     fprintf('%.3f ', [p_margin; p0]);
+%     fprintf('\n');
+%     fprintf('  loss: %.3f\n', loss)
+%     fprintf('  gradients: ');
+%     fprintf('%.3f ', gradients');
+%     fprintf('\n');
+
+        result = find(gradients>=0);
+
+        if scn_index == 94
+            gt = [1,2,6,7];
+        elseif scn_index == 123
+            gt = [1,3,4,38,39];
+        elseif (scn_index == 2) || (scn_index == 11) || (scn_index == 73)
+            gt = [1,2,9];
+        elseif (scn_index == 30) || (scn_index == 31)
+            gt = [1,2,5];
+        elseif (sum([48,66,91,103,162,164] == scn_index) >= 1)
+            gt = [1,3,4,12,31,35];
+        else
+            gt = groundtruth{gt_scene(scn_index)};
+        end
+        acc = [acc,length(intersect(result,gt))/length(gt)];
+        FP = [FP,(length(setdiff(result,intersect(result,gt))))];
+        
+    
+    end
 end
 
 % reference
