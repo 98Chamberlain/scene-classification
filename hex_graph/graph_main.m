@@ -54,6 +54,9 @@ adj_mat(:,1) = zeros(40,1);
 E_e = logical(adj_mat);
 % E_e = E_e | E_e';
 
+% full adj_mat
+adj_mat = make_SceneMatrix();
+
 tic;
 G = hex_setup(E_h, E_e);
 toc
@@ -69,6 +72,7 @@ use_scene = length(root_s);
 
 acc = [];
 FP = [];
+% for s_id = 1:1
 for s_id = 1:use_scene
     disp(['now process ',num2str(s_id),'/',num2str(use_scene),' scene']);
     for data_id = 1:data_len
@@ -76,6 +80,10 @@ for s_id = 1:use_scene
     data = prob_data(:,data_id,s_id);
     sum_prob = sumProb_p(data);
     label = gt_scene(scn_index);
+%     data_t = data(root_s);
+%     [~,idx] = max(data_t);
+%     use_gt = gt_scene(root_s);
+%     label = use_gt(idx);
     
 %     % show original data
 %     fprintf('  raw scores: ');
@@ -84,7 +92,7 @@ for s_id = 1:use_scene
 %     fprintf('  label: %d\n', label);
     
     % run the hex graph
-    back_propagate = false;
+    back_propagate = true;
     [loss, gradients, p_margin, p0] = hex_run(G, sum_prob, label, back_propagate);
     
 %     % show the result
@@ -96,8 +104,16 @@ for s_id = 1:use_scene
 %     fprintf('  gradients: ');
 %     fprintf('%.3f ', gradients');
 %     fprintf('\n');
-
-        result = find(gradients>=0);
+        
+        % [~,I] = max(gradients);
+        % result = groundtruth{I};
+        
+        % use past structure to run the multi-label relation
+%         feature = 1;
+%         model = 1;
+%         mf = 1;
+%         nrm = 1;
+%         result = searchBest_hr(adj_mat,(p_margin./max(p_margin)),feature,model,mf,nrm);
 
         if scn_index == 94
             gt = [1,2,6,7];
