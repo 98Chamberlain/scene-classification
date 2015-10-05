@@ -79,11 +79,11 @@ for s_id = 1:use_scene
     scn_index = root_s(s_id);
     data = prob_data(:,data_id,s_id);
     sum_prob = sumProb_p(data);
-    label = gt_scene(scn_index);
-%     data_t = data(root_s);
-%     [~,idx] = max(data_t);
-%     use_gt = gt_scene(root_s);
-%     label = use_gt(idx);
+    % label = gt_scene(scn_index);
+    data_t = data(root_s);
+    [~,idx] = max(data_t);
+    use_gt = gt_scene(root_s);
+    label = use_gt(idx);
     
 %     % show original data
 %     fprintf('  raw scores: ');
@@ -105,8 +105,8 @@ for s_id = 1:use_scene
 %     fprintf('%.3f ', gradients');
 %     fprintf('\n');
         
-        % [~,I] = max(gradients);
-        % result = groundtruth{I};
+        [~,I] = max(gradients);
+        result = groundtruth{I};
         
         % use past structure to run the multi-label relation
 %         feature = 1;
