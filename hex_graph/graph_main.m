@@ -82,11 +82,10 @@ level{4} = [29:35];
 % children information
 children = children_run(adj_mat);
 
-% % train SVM model for each label
-% train_data = prob_data(:,1:train_amt,root_s);
-% train_data = train_data(:,:);
-% [model,mf,nrm] = prob_SVM(train_data',train_amt);
-
+% train SVM model for each label
+train_data = prob_data(:,1:train_amt,root_s);
+train_data = train_data(:,:);
+[model,mf,nrm] = prob_SVM(train_data',train_amt);
 
 acc = [];
 FP = [];
