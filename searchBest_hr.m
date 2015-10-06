@@ -67,8 +67,8 @@ while( ~isempty( max_result ) )
 %                     p_list = [];
 %                 end
 %             else
-               p_list =  h_list( (sum_prob(h_list)./sum_prob(i)) >= thr ); % threshold
-%                p_list = h_list;
+%                p_list =  h_list( (sum_prob(h_list)./sum_prob(i)) >= thr ); % threshold
+               p_list = h_list;
 %             end
             if isempty(p_list)
                 % max_result = [];
@@ -80,7 +80,7 @@ while( ~isempty( max_result ) )
                 if isempty(r_list)
                     max_prob = prod( exp(sum_prob([result])) );
                     prob_tmp = prod( exp(sum_prob([result,p_list(p1)])) );
-                    disp(['now calculate ',num2str([result,p_list(p1)]),', the valid is ' ,num2str(valid),', the prob is ' ,num2str(prob_tmp)]);
+                    % disp(['now calculate ',num2str([result,p_list(p1)]),', the valid is ' ,num2str(valid),', the prob is ' ,num2str(prob_tmp)]);
                     if prob_tmp > max_prob
                         max_prob = prob_tmp;
                         r_list = [r_list , p_list(p1)];

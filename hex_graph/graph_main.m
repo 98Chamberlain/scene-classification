@@ -72,18 +72,18 @@ use_scene = length(root_s);
 
 acc = [];
 FP = [];
-% for s_id = 1:1
-for s_id = 1:use_scene
+for s_id = 1:1
+% for s_id = 1:use_scene
     disp(['now process ',num2str(s_id),'/',num2str(use_scene),' scene']);
     for data_id = 1:data_len
     scn_index = root_s(s_id);
     data = prob_data(:,data_id,s_id);
     sum_prob = sumProb_p(data);
-    % label = gt_scene(scn_index);
-    data_t = data(root_s);
-    [~,idx] = max(data_t);
-    use_gt = gt_scene(root_s);
-    label = use_gt(idx);
+    label = gt_scene(scn_index);
+%     data_t = data(root_s);
+%     [~,idx] = max(data_t);
+%     use_gt = gt_scene(root_s);
+%     label = use_gt(idx);
     
 %     % show original data
 %     fprintf('  raw scores: ');
@@ -91,9 +91,24 @@ for s_id = 1:use_scene
 %     fprintf('\n');
 %     fprintf('  label: %d\n', label);
     
+    total_grad(40,40) = 0;
+    for t_label = 1:40
     % run the hex graph
     back_propagate = true;
-    [loss, gradients, p_margin, p0] = hex_run(G, sum_prob, label, back_propagate);
+    [loss, gradients, p_margin, p0] = hex_run(G, sum_prob, t_label, back_propagate);
+    total_grad(:,t_label) = gradients;
+    % total_pmar(:,t_label) = p_margin;
+    end
+    [m,I] = max(total_grad);
+    [m1,I1] = min(m(2:3));
+    [m2,I2] = min(m(4:5));
+    [m3,I3] = min(m(6:12));
+    [m4,I4] = min(m(13:40));
+    I = [I1,I2,I3,I4];
+    [mm,max_I] = max([m1,m2,m3,m4]);
+    I = I(max_I);
+    result = groundtruth{I};
+    collect_result{data_id} = result;
     
 %     % show the result
 %     fprintf('Junction Tree results\n');
@@ -105,8 +120,8 @@ for s_id = 1:use_scene
 %     fprintf('%.3f ', gradients');
 %     fprintf('\n');
         
-        [~,I] = max(gradients);
-        result = groundtruth{I};
+%         [~,I] = max(gradients);
+%         result = groundtruth{I};
         
         % use past structure to run the multi-label relation
 %         feature = 1;
@@ -133,6 +148,8 @@ for s_id = 1:use_scene
         
     
     end
+    disp(['scene ',num2str(s_id),' mean accuracy: ',num2str(mean(acc((s_id-1)*data_len+1:s_id*data_len))),...
+        ', sum FP: ',num2str(sum(FP((s_id-1)*data_len+1:s_id*data_len)))]);
 end
 
 % reference
