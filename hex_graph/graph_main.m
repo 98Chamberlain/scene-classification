@@ -2,7 +2,7 @@
 
 addpath(genpath('../../hex_graph-master'));
 addpath('../../Research_Toolkit/SVM/libsvm-3.20/matlab');
-addpath('../');
+addpath(genpath('../'));
 
 
 % % ----- load the data -----
