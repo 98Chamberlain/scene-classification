@@ -1,6 +1,7 @@
-clear all; close all;
+% clear all; close all;
 
 addpath(genpath('../../hex_graph-master'));
+addpath('../../Research_Toolkit/SVM/libsvm-3.20/matlab');
 addpath('../');
 
 
@@ -70,16 +71,36 @@ prob_test = prob_data(:,:,root_s);
 fc8_test = fc8_data(:,:,root_s);
 use_scene = length(root_s);
 
+% level information
+level = {};
+% level{0} = [1];
+level{1} = [2,3,5,9];
+level{2} = [4,6,7,8,10,21,22];
+level{3} = [11:20,23:28,36:40];
+level{4} = [29:35];
+
+% children information
+children = children_run(adj_mat);
+
+% % train SVM model for each label
+% train_data = prob_data(:,1:train_amt,root_s);
+% train_data = train_data(:,:);
+% [model,mf,nrm] = prob_SVM(train_data',train_amt);
+
+
 acc = [];
 FP = [];
-for s_id = 1:1
-% for s_id = 1:use_scene
-    disp(['now process ',num2str(s_id),'/',num2str(use_scene),' scene']);
+cnt_gt_label = zeros(40,1);
+cnt_ac_label = zeros(40,1);
+cnt_FP_label = zeros(40,1);
+% for s_id = 1:1
+for s_id = 1:use_scene
+    disp(['-------------------- now process ',num2str(s_id),'/',num2str(use_scene),' scene --------------------']);
     for data_id = 1:data_len
     scn_index = root_s(s_id);
     data = prob_data(:,data_id,s_id);
     sum_prob = sumProb_p(data);
-    label = gt_scene(scn_index);
+%     label = gt_scene(scn_index);
 %     data_t = data(root_s);
 %     [~,idx] = max(data_t);
 %     use_gt = gt_scene(root_s);
@@ -91,25 +112,75 @@ for s_id = 1:1
 %     fprintf('\n');
 %     fprintf('  label: %d\n', label);
     
-    total_grad(40,40) = 0;
-    for t_label = 1:40
-    % run the hex graph
-    back_propagate = true;
-    [loss, gradients, p_margin, p0] = hex_run(G, sum_prob, t_label, back_propagate);
-    total_grad(:,t_label) = gradients;
-    % total_pmar(:,t_label) = p_margin;
+%     % run the hex graph
+%     back_propagate = true;
+%     [loss, gradients, p_margin, p0] = hex_run(G, sum_prob, label, back_propagate);
+%     state = G.c_s_cell{1};
+%     state_prob = state * p_margin;
+%     [~,I] = max(state_prob);
+%     result = find(state(I,:)==1);
+
+result = [1];
+cont = true;
+parent_list = 1;
+while( cont )
+child_list = [];
+for p = 1:length(parent_list)
+    % child_list = [child_list , children{p}];
+    child_list = children{parent_list(p)};
+end
+child_list = unique(child_list);
+
+% Use SVM to predict each label
+predict = [];
+for child = 1:length(child_list)
+    c = child_list(child);
+    [m2,N]=size(data');
+    fea_tmp=(data'-ones(m2,1)*mf{c})*nrm{c};
+    [predicted, accuracy, d_values] = svmpredict(1 , fea_tmp , model{c});
+    predict = [predict,predicted];
+end
+child_list = child_list(find(predict==1));
+
+if ~isempty(child_list)
+    result_list = child_list(1);
+    % check isvalid
+    finished = false;
+else
+    finished = true;
+    cont = false;
+end
+% begin check
+while( ~finished )
+    old_result_list = now_result_list;
+    for c = 1:length(child_list)
+        for r = 1:length(result_list)
+            notvalid(r) = (adj_mat( result_list(r),child_list(c) )==1) && (adj_mat( child_list(c),result_list(r) )==1);
+        end
+        if (sum(notvalid) > 0)
+            if p_margin(child_list(c)) > sum(p_margin(result_list))
+                result_list = child_list(c);
+            end
+        else
+            result_list = [child_list(c),result_list];
+        end
     end
-    [m,I] = max(total_grad);
-    [m1,I1] = min(m(2:3));
-    [m2,I2] = min(m(4:5));
-    [m3,I3] = min(m(6:12));
-    [m4,I4] = min(m(13:40));
-    I = [I1,I2,I3,I4];
-    [mm,max_I] = max([m1,m2,m3,m4]);
-    I = I(max_I);
-    result = groundtruth{I};
-    collect_result{data_id} = result;
-    
+    now_result_list = sort(unique(result_list));
+    if isequal(now_result_list,old_result_list)
+        finished = true;
+        parent_list = now_result_list;
+        result = [result,parent_list];
+    end
+end
+
+label = now_result_list;
+back_propagate = true;
+[loss, gradients, p_margin, p0] = hex_run(G, sum_prob, label, back_propagate);
+
+end
+
+% result_total{data_id} = result;
+
 %     % show the result
 %     fprintf('Junction Tree results\n');
 %     fprintf('  marginal probability: ');
@@ -146,11 +217,19 @@ for s_id = 1:1
         acc = [acc,length(intersect(result,gt))/length(gt)];
         FP = [FP,(length(setdiff(result,intersect(result,gt))))];
         
+        cnt_gt_label(gt) = cnt_gt_label(gt)+1;
+        cnt_ac_label(intersect(result,gt)) = cnt_ac_label(intersect(result,gt))+1;
+        cnt_FP_label(setdiff(result,intersect(result,gt))) = cnt_FP_label(setdiff(result,intersect(result,gt)))+1;
     
     end
-    disp(['scene ',num2str(s_id),' mean accuracy: ',num2str(mean(acc((s_id-1)*data_len+1:s_id*data_len))),...
-        ', sum FP: ',num2str(sum(FP((s_id-1)*data_len+1:s_id*data_len)))]);
 end
+
+% display the result
+for s_id = 1:use_scene
+disp(['scene ',num2str(s_id),' mean accuracy: ',num2str(mean(acc((s_id-1)*data_len+1:s_id*data_len))),...
+        ', sum FP: ',num2str(sum(FP((s_id-1)*data_len+1:s_id*data_len)))])
+end
+disp(['total mean accuracy: ',num2str(mean(acc)),', sum FP: ',num2str(sum(FP))])
 
 % reference
 % function test_passed = run_test_example(E_h, E_e, f, l)
