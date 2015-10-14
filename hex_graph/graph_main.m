@@ -82,10 +82,10 @@ level{4} = [29:35];
 % children information
 children = children_run(adj_mat);
 
-% train SVM model for each label
-train_data = prob_data(:,1:train_amt,root_s);
-train_data = train_data(:,:);
-[model,mf,nrm] = prob_SVM(train_data',train_amt);
+% % train SVM model for each label
+% train_data = prob_data(:,1:train_amt,root_s);
+% train_data = train_data(:,:);
+% [model,mf,nrm] = prob_SVM(train_data',train_amt);
 
 acc = [];
 FP = [];
@@ -119,66 +119,85 @@ for s_id = 1:use_scene
 %     [~,I] = max(state_prob);
 %     result = find(state(I,:)==1);
 
-result = [1];
-cont = true;
-parent_list = 1;
-while( cont )
-child_list = [];
-for p = 1:length(parent_list)
-    % child_list = [child_list , children{p}];
-    child_list = children{parent_list(p)};
-end
-child_list = unique(child_list);
+% % ----- decision tree begin -----
+% result = [1];
+% cont = true;
+% parent_list = 1;
+% while( cont )
+% child_list = [];
+% for p = 1:length(parent_list)
+%     % child_list = [child_list , children{p}];
+%     child_list = children{parent_list(p)};
+% end
+% child_list = unique(child_list);
+% 
+% % Use SVM to predict each label
+% predict = [];
+% for child = 1:length(child_list)
+%     c = child_list(child);
+%     [m2,N]=size(data');
+%     fea_tmp=(data'-ones(m2,1)*mf{c})*nrm{c};
+%     [predicted, accuracy, d_values] = svmpredict(1 , fea_tmp , model{c});
+%     predict = [predict,predicted];
+% end
+% child_list = child_list(find(predict==1));
+% 
+% if ~isempty(child_list)
+%     result_list = child_list(1);
+%     % check isvalid
+%     finished = false;
+% else
+%     finished = true;
+%     cont = false;
+% end
+% % begin check
+% new_result_list = [];
+% while( ~finished )
+%     old_result_list = new_result_list;
+%     for c = 1:length(child_list)
+%         for r = 1:length(result_list)
+%             notvalid(r) = (adj_mat( result_list(r),child_list(c) )==1) && (adj_mat( child_list(c),result_list(r) )==1);
+%         end
+%         if (sum(notvalid) > 0)
+%             if p_margin(child_list(c)) > sum(p_margin(result_list))
+%                 result_list = child_list(c);
+%             end
+%         else
+%             result_list = [child_list(c),result_list];
+%         end
+%     end
+%     new_result_list = sort(unique(result_list));
+%     if isequal(new_result_list,old_result_list)
+%         finished = true;
+%         parent_list = new_result_list;
+%         result = [result,parent_list];
+%     end
+% end
+% 
+% label = new_result_list;
+% back_propagate = true;
+% [loss, gradients, p_margin, p0] = hex_run(G, sum_prob, label, back_propagate);
+% 
+% end
+% % ----- decision tree end -----
 
-% Use SVM to predict each label
-predict = [];
-for child = 1:length(child_list)
-    c = child_list(child);
-    [m2,N]=size(data');
-    fea_tmp=(data'-ones(m2,1)*mf{c})*nrm{c};
-    [predicted, accuracy, d_values] = svmpredict(1 , fea_tmp , model{c});
-    predict = [predict,predicted];
-end
-child_list = child_list(find(predict==1));
+% result_total{data_id} = result;
 
-if ~isempty(child_list)
-    result_list = child_list(1);
-    % check isvalid
-    finished = false;
-else
-    finished = true;
-    cont = false;
-end
-% begin check
-while( ~finished )
-    old_result_list = now_result_list;
-    for c = 1:length(child_list)
-        for r = 1:length(result_list)
-            notvalid(r) = (adj_mat( result_list(r),child_list(c) )==1) && (adj_mat( child_list(c),result_list(r) )==1);
-        end
-        if (sum(notvalid) > 0)
-            if p_margin(child_list(c)) > sum(p_margin(result_list))
-                result_list = child_list(c);
-            end
-        else
-            result_list = [child_list(c),result_list];
-        end
-    end
-    now_result_list = sort(unique(result_list));
-    if isequal(now_result_list,old_result_list)
-        finished = true;
-        parent_list = now_result_list;
-        result = [result,parent_list];
-    end
-end
+% ----- SVM feedback test -----
+label = gt_scene( scn_index );
 
-label = now_result_list;
+[m2,N]=size(data');
+fea_tmp=(data'-ones(m2,1)*mf)*nrm;
+[predicted, accuracy, d_values] = svmpredict(label , fea_tmp , model);
+
+label = predicted;
 back_propagate = true;
 [loss, gradients, p_margin, p0] = hex_run(G, sum_prob, label, back_propagate);
 
-end
+feature = 1;
+result = searchBest_hr(adj_mat,(p_margin./max(p_margin)),feature,model,mf,nrm);
+% ----- SVM feedback test end -----
 
-% result_total{data_id} = result;
 
 %     % show the result
 %     fprintf('Junction Tree results\n');
@@ -229,6 +248,12 @@ disp(['scene ',num2str(s_id),' mean accuracy: ',num2str(mean(acc((s_id-1)*data_l
         ', sum FP: ',num2str(sum(FP((s_id-1)*data_len+1:s_id*data_len)))])
 end
 disp(['total mean accuracy: ',num2str(mean(acc)),', sum FP: ',num2str(sum(FP))])
+
+for i = 1:40
+    disp(['Label ',num2str(i),' mean accuracy: ',num2str(cnt_ac_label(i)/cnt_gt_label(i)),...
+        ', sum FP: ',num2str(cnt_FP_label(i))])
+end
+disp(['total mean accuracy: ',num2str(sum(cnt_ac_label)/sum(cnt_gt_label)),', sum FP: ',num2str(sum(cnt_FP_label))])
 
 % reference
 % function test_passed = run_test_example(E_h, E_e, f, l)
