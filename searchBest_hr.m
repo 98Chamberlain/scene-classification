@@ -67,8 +67,8 @@ while( ~isempty( max_result ) )
 %                     p_list = [];
 %                 end
 %             else
-%                p_list =  h_list( (sum_prob(h_list)./sum_prob(i)) >= thr ); % threshold
-               p_list = h_list;
+               p_list =  h_list( (sum_prob(h_list)./sum_prob(i)) >= thr ); % threshold
+%                p_list = h_list;
 %             end
             if isempty(p_list)
                 % max_result = [];

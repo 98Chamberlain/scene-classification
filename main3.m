@@ -5,15 +5,16 @@ addpath('./prob_SVM/');
 load('./total_label.mat');
 
 % setting the parameter
-train_amt = 100;
-data_len = 128;
+data_len = 2000;
+train_amt = floor(data_len*0.8*0.8);
+test_amt = floor(data_len*0.2);
 
 % Qualcomm label
 % adj_mat = xlsread('scene_matrix.xlsx',1);
 adj_mat = make_SceneMatrix();
 
 % read prob form .h5 file
-% load('./statistic/feature_data.mat');
+load('./statistic/feature_data.mat');
 % fc8_testing_data = fc8_data(:,train_amt+1:data_len,:);
 % fc8_testing_data = fc8_testing_data(:,:);
 % prob_testing_data = prob_data(:,train_amt+1:data_len,:);
@@ -43,6 +44,7 @@ use_scene = length(root_s);
 
 % % training
 % [model,mf,nrm] = prob_SVM( training_SR );
+test_amt = 128;
 
 acc = [];
 FP = [];
@@ -63,12 +65,16 @@ for i = 1:use_scene
 % for i = 28:56
 
 % data = hdf5read(['./statistic/toyshop/',d(i).name],'dataset_1');
+    disp(['----- now process ',num2str(i),'/',num2str(use_scene),' scene -----']);
     scn_index = root_s(i);
-	f = dir(['../h5/multi_label_origin_prob_h5',total_label{scn_index+40,2},'/*.h5']);
-    for h5_idx = 1:length(f)
+    
+    for data_idx = 1:size(prob_data,2)
+        data = prob_data(:,data_idx,scn_index);
+% 	f = dir(['../h5/multi_label_origin_prob_h5',total_label{scn_index+40,2},'/*.h5']);
+%     for h5_idx = 1:length(f)
 	
         % calculate the probability of labels
-		data = hdf5read(['../h5/multi_label_origin_prob_h5',total_label{scn_index+40,2},'/',f(h5_idx).name],'prob');
+% 		data = hdf5read(['../h5/multi_label_origin_prob_h5',total_label{scn_index+40,2},'/',f(h5_idx).name],'prob');
 		sum_prob = sumProb_p(data);
         
 %         % without relation
@@ -114,7 +120,8 @@ for i = 1:use_scene
         cnt_gt_label(gt) = cnt_gt_label(gt)+1;
         cnt_ac_label(intersect(result,gt)) = cnt_ac_label(intersect(result,gt))+1;
         cnt_FP_label(setdiff(result,intersect(result,gt))) = cnt_FP_label(setdiff(result,intersect(result,gt)))+1;
-        
+    end
+
 % % test
 % adj_mat = [0,1,1,1;
 %            0,0,1,1;
