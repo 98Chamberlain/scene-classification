@@ -12,8 +12,8 @@ t = load('../total_label.mat');
 % load prob & fc8 data
 % prob_data: 205 x 2000 x 205 (feature x data x scene)
 % fc8_data : 205 x 2000 x 205 (feature x data x scene)
-% load('../feature_data_2000.mat'); % new 2000 data
-load('../statistic/feature_data.mat'); % old 128 data
+load('../feature_data_2000.mat'); % new 2000 data
+% load('../statistic/feature_data.mat'); % old 128 data
 
 % load ground truth
 % groundtruth = {[1],[1,2],[1,3],[1,3,4],[1,5],[1,2,6],[1,2,7],[1,2,8],[1,2,9],[1,3,10],[1,3,4,11],[1,3,4,12],...

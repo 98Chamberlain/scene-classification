@@ -1,5 +1,7 @@
 close all; clear all;
 addpath('./prob_SVM/');
+addpath('../Research_Toolkit/SVM/libsvm-3.20/matlab');
+addpath(genpath('./'));
 
 % load the label name
 load('./total_label.mat');
@@ -9,12 +11,39 @@ data_len = 2000;
 train_amt = floor(data_len*0.8*0.8);
 test_amt = floor(data_len*0.2);
 
+% set hierarchy adjacency matrix
+adj_mat = genAdj( 40 , 'exclusive');
+adj_mat = setHier( adj_mat , 6 , [13,14,15,16] ); % home
+adj_mat = setHier( adj_mat , 7 , [17,18] ); % work_place
+adj_mat = setHier( adj_mat , 8 , [19,20] ); % store
+adj_mat = setHier( adj_mat , 2 , [6,7,8,21,22] ); % indoor
+adj_mat = setHier( adj_mat , 10 , [23,24,25,26,27,28] ); % building
+adj_mat = setHier( adj_mat , 11 , [29,30] ); % plants
+adj_mat = setHier( adj_mat , 12 , [31:1:35] ); % water
+adj_mat = setHier( adj_mat , 4 , [11:1:12 36:1:40] ); % landscape
+adj_mat = setHier( adj_mat , 3 , [10,4] ); % outdoor
+adj_mat = setHier( adj_mat , 1 , [2,3,9,5] ); % root
+E_h = logical(adj_mat);
+
+% set Exclusive adjacency matrix
+adj_mat = genAdj( 40 , 'exclusive');
+adj_mat = setRela( adj_mat , 6 , 7 ); % work_place - home
+adj_mat = setRela( adj_mat , 2 , [5,9] ); % indoor - sports/industrial
+adj_mat = setRela( adj_mat , 38 , 39 ); % mountain - ice
+adj_mat = setRela( adj_mat , 31 , 35 ); % coast - ocean
+adj_mat(1,:) = zeros(1,40);
+adj_mat(:,1) = zeros(40,1);
+E_e = logical(adj_mat);
+
+tic;
+G = hex_setup(E_h, E_e);
+toc
+
 % Qualcomm label
-% adj_mat = xlsread('scene_matrix.xlsx',1);
 adj_mat = make_SceneMatrix();
 
 % read prob form .h5 file
-load('./statistic/feature_data.mat');
+% load('./statistic/feature_data.mat');
 % fc8_testing_data = fc8_data(:,train_amt+1:data_len,:);
 % fc8_testing_data = fc8_testing_data(:,:);
 % prob_testing_data = prob_data(:,train_amt+1:data_len,:);
@@ -27,30 +56,28 @@ load('./statistic/feature_data.mat');
 %     [1,3,4,12,32],[1,3,4,12,33],[1,3,4,12,34],[1,3,4,12,35],[1,3,36],[1,3,37],[1,3,38],[1,3,39],[1,3,40]};
 load('./gt_scene.mat'); % gt_scene , groundtruth
 
+% children information
+children = children_run(adj_mat);
+
 % data pre-process
 root_s = [1,2,3,5:1:22,24,25,26,28:1:38,40:1:49,51:1:63,65,66,...
     67,69:1:75,77:1:81,83:1:94,96:1:99,101:1:119,121:1:138,140,142,143,145,...
     147,148,150:1:158,160,162,163,164,166:1:172,174:1:185,189,190,194,195,196,...
     198,199,201,202,205];
 use_scene = length(root_s);
-	
-	% prob_train_data = prob_data(:,1:train_amt,root_s);
-% prob_train_data = prob_train_data(:,:);
-% prob_test_data = prob_data(:,train_amt+1:data_len,root_s);
-% prob_test_data = prob_test_data(:,:);
 
-% % sparse-coding representation
-% [ training_SR , testing_SR , D ] = sparse_coding( prob_train_data , prob_test_data );
+% load prob & fc8 data
+% prob_data: 205 x 2000 x 205 (feature x data x scene)
+% fc8_data : 205 x 2000 x 205 (feature x data x scene)
+load('../feature_data_2000.mat'); % new 2000 data
 
-% % training
-% [model,mf,nrm] = prob_SVM( training_SR );
-test_amt = 128;
+% train SVM model for each label
+train_data = prob_data(:,1:train_amt,root_s);
+train_data = train_data(:,:);
+[model,mf,nrm] = prob_SVM(train_data',train_amt);
 
 acc = [];
 FP = [];
-FN = [];
-TP = [];
-TN = [];
 tmp = repmat(root_s,[ (data_len-train_amt) , 1 ]);
 scn = tmp(:);
 scn = scn';
@@ -64,17 +91,16 @@ for i = 1:use_scene
 % for i = (123-1)*28+1:123*28
 % for i = 28:56
 
-% data = hdf5read(['./statistic/toyshop/',d(i).name],'dataset_1');
     disp(['----- now process ',num2str(i),'/',num2str(use_scene),' scene -----']);
     scn_index = root_s(i);
     
-    for data_idx = 1:size(prob_data,2)
-        data = prob_data(:,data_idx,scn_index);
-% 	f = dir(['../h5/multi_label_origin_prob_h5',total_label{scn_index+40,2},'/*.h5']);
-%     for h5_idx = 1:length(f)
+%     for data_idx = 1:size(prob_data,2)
+%         data = prob_data(:,data_idx,scn_index);
+	f = dir(['../h5/multi_label_origin_prob_h5',total_label{scn_index+40,2},'/*.h5']);
+    for h5_idx = 1:length(f)
 	
         % calculate the probability of labels
-% 		data = hdf5read(['../h5/multi_label_origin_prob_h5',total_label{scn_index+40,2},'/',f(h5_idx).name],'prob');
+		data = hdf5read(['../h5/multi_label_origin_prob_h5',total_label{scn_index+40,2},'/',f(h5_idx).name],'prob');
 		sum_prob = sumProb_p(data);
         
 %         % without relation
@@ -85,20 +111,81 @@ for i = 1:use_scene
 %             result = groundtruth{gt_scene(I)};
 %         end
         
-%         % with constant threshold
-%         feature = prob_testing_data(:,i);
+%         % use prob feature
+%         feature = 1;
+%         model = 1;
+%         mf = 1;
+%         nrm = 1;
 %         tic
-%         result = searchBest_hr(adj_mat,sum_prob,feature,model_prob,mf_prob,nrm_prob);
+%         result = searchBest_hr(adj_mat,sum_prob,feature,model,mf,nrm);
 %         time = [time ,toc];
-        
-        % use prob feature
-        feature = 1;
-        model = 1;
-        mf = 1;
-        nrm = 1;
-        tic
-        result = searchBest_hr(adj_mat,sum_prob,feature,model,mf,nrm);
-        time = [time ,toc];
+
+		% ----- decision tree begin -----
+		
+		[loss, gradients, p_margin, p0] = hex_run(G, sum_prob, label, false);
+		
+		result = [1];
+		cont = true;
+		parent_list = 1;
+		while( cont )
+			child_list = [];
+			for p = 1:length(parent_list)
+				% child_list = [child_list , children{p}];
+				child_list = children{parent_list(p)};
+			end
+			child_list = unique(child_list);
+			
+			% Use SVM to predict each label
+			predict = [];
+			for child = 1:length(child_list)
+				c = child_list(child);
+				[m2,N]=size(data');
+				fea_tmp=(data'-ones(m2,1)*mf{c})*nrm{c};
+				[predicted, accuracy, d_values] = svmpredict(1 , fea_tmp , model{c});
+				predict = [predict,predicted];
+			end
+			child_list = child_list(find(predict==1));
+			
+			if ~isempty(child_list)
+				result_list = child_list(1);
+				% check isvalid
+				finished = false;
+			else
+				finished = true;
+				cont = false;
+			end
+			% begin check
+			new_result_list = [];
+			while( ~finished )
+				old_result_list = new_result_list;
+				for c = 1:length(child_list)
+					for r = 1:length(result_list)
+						notvalid(r) = (adj_mat( result_list(r),child_list(c) )==1) && (adj_mat( child_list(c),result_list(r) )==1);
+					end
+					if (sum(notvalid) > 0)
+						if p_margin(child_list(c)) > sum(p_margin(result_list))
+							result_list = child_list(c);
+						end
+					else
+						result_list = [child_list(c),result_list];
+					end
+				end
+				new_result_list = sort(unique(result_list));
+				if isequal(new_result_list,old_result_list)
+					finished = true;
+					parent_list = new_result_list;
+					result = [result,parent_list];
+				end
+			end
+			
+			label = new_result_list;
+			back_propagate = true;
+			[loss, gradients, p_margin, p0] = hex_run(G, sum_prob, label, back_propagate);
+		
+		end
+		% ----- decision tree end -----
+		
+		result_total{data_id} = result;
               
         
         if scn_index == 94
