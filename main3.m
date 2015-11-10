@@ -1,4 +1,4 @@
-close all; clear all;
+% close all; clear all;
 addpath(genpath('../hex_graph-master'));
 addpath('./prob_SVM/');
 addpath('../Research_Toolkit/SVM/libsvm-3.20/matlab');
@@ -76,11 +76,13 @@ load('./statistic/feature_data.mat');
 train_data = prob_data(:,:,root_s);
 train_data = train_data(:,:);
 train_amt = 128;
-[model,mf,nrm] = prob_SVM(train_data',train_amt);
+% [model,mf,nrm] = prob_SVM(train_data',train_amt);
+load('./model.mat');
 
 % load new 2000 data
 load('./feature_data_2000.mat'); % new 2000 data
 
+test_amt = 20;
 acc = [];
 FP = [];
 tmp = repmat(root_s,[ (data_len-train_amt) , 1 ]);
@@ -99,8 +101,9 @@ for i = 1:use_scene
     disp(['----- now process ',num2str(i),'/',num2str(use_scene),' scene -----']);
     scn_index = root_s(i);
     
-    for data_idx = 1:size(prob_data,2)
-        data = prob_data(:,data_idx,scn_index);
+    % for data_id = 1:size(prob_data,2)
+    for data_id = 1:400 %test_amt
+        data = prob_data(:,data_id,scn_index);
 
 %     f = dir(['../h5/multi_label_origin_prob_h5',total_label{scn_index+40,2},'/*.h5']);
 %     for h5_idx = 1:length(f)
@@ -110,101 +113,101 @@ for i = 1:use_scene
 		sum_prob = sumProb_p(data);
         
 %         % without relation
-%         [M,I] = max(prob_testing_data(:,i));
+%         [M,I] = max(data);
 %         if gt_scene(I) == 0
 %             result == 0;
 %         else
 %             result = groundtruth{gt_scene(I)};
 %         end
         
-%         % use prob feature
-%         feature = 1;
-%         model = 1;
-%         mf = 1;
-%         nrm = 1;
-%         tic
-%         result = searchBest_hr(adj_mat,sum_prob,feature,model,mf,nrm);
-%         time = [time ,toc];
+        % use prob feature
+        feature = 1;
+        model = 1;
+        mf = 1;
+        nrm = 1;
+        tic
+        result = searchBest_hr(adj_mat,sum_prob,feature,model,mf,nrm);
+        time = [time ,toc];
 
-		% ----- decision tree begin -----
-		
-		[loss, gradients, p_margin, p0] = hex_run(G, sum_prob, label, false);
-		
-		result = [1];
-		cont = true;
-		parent_list = 1;
-		while( cont )
-			child_list = [];
-			for p = 1:length(parent_list)
-				% child_list = [child_list , children{p}];
-				child_list = children{parent_list(p)};
-			end
-			child_list = unique(child_list);
-			
-			% Use SVM to predict each label
-			predict = [];
-			for child = 1:length(child_list)
-				c = child_list(child);
-				[m2,N]=size(data');
-				fea_tmp=(data'-ones(m2,1)*mf{c})*nrm{c};
-				[predicted, accuracy, d_values] = svmpredict(1 , fea_tmp , model{c});
-				predict = [predict,predicted];
-			end
-			child_list = child_list(find(predict==1));
-			
-			if ~isempty(child_list)
-				result_list = child_list(1);
-				% check isvalid
-				finished = false;
-			else
-				finished = true;
-				cont = false;
-			end
-			% begin check
-			new_result_list = [];
-			while( ~finished )
-				old_result_list = new_result_list;
-				for c = 1:length(child_list)
-					for r = 1:length(result_list)
-						notvalid(r) = (adj_mat( result_list(r),child_list(c) )==1) && (adj_mat( child_list(c),result_list(r) )==1);
-					end
-					if (sum(notvalid) > 0)
-						if p_margin(child_list(c)) > sum(p_margin(result_list))
-							result_list = child_list(c);
-						end
-					else
-						result_list = [child_list(c),result_list];
-					end
-				end
-				new_result_list = sort(unique(result_list));
-				if isequal(new_result_list,old_result_list)
-					finished = true;
-					parent_list = new_result_list;
-					result = [result,parent_list];
-				end
-			end
-			
-			label = new_result_list;
-			back_propagate = true;
-            
-            % back_propagate
-            % clamp the potential table and re-run message pass
-            num_v = G.num_v;
-            c_p_cell = hex_run.assign_potential(G, p_margin);
-            c_p_cell = hex_run.clamp_potential(c_p_cell, G, label);
-            c_m_cell = hex_run.pass_message(G, c_p_cell);
-            [Pr_joint_margin, Z2, ~] = hex_run.marginalize(G, c_m_cell, c_p_cell);
-  
-            loss = log(p_margin(label));
-            gradients = Pr_joint_margin ./ Z2 - Pr_margin / Z;
-            p_margin = Pr_joint_margin ./ max(Pr_joint_margin);
-			% [loss, gradients, p_margin, p0] = hex_run(G, p_margin, label, back_propagate);
-		
-		end
-		% ----- decision tree end -----
-		
-		result_total{data_id} = result;
-              
+% 		% ----- decision tree begin -----
+% 	    label = 1;
+% 		[loss, gradients, p_margin, p0] = hex_run(G, sum_prob, label, false);
+% 		
+% 		result = [1];
+% 		cont = true;
+% 		parent_list = 1;
+% 		while( cont )
+% 			child_list = [];
+% 			for p = 1:length(parent_list)
+% 				% child_list = [child_list , children{p}];
+% 				child_list = children{parent_list(p)};
+% 			end
+% 			child_list = unique(child_list);
+% 			
+% 			% Use SVM to predict each label
+% 			predict = [];
+% 			for child = 1:length(child_list)
+% 				c = child_list(child);
+% 				[m2,N]=size(data');
+% 				fea_tmp=(data'-ones(m2,1)*mf{c})*nrm{c};
+% 				[predicted, accuracy, d_values] = svmpredict(1 , fea_tmp , model{c});
+% 				predict = [predict,predicted];
+% 			end
+% 			child_list = child_list(find(predict==1));
+% 			
+% 			if ~isempty(child_list)
+% 				result_list = child_list(1);
+% 				% check isvalid
+% 				finished = false;
+% 			else
+% 				finished = true;
+% 				cont = false;
+% 			end
+% 			% begin check
+% 			new_result_list = [];
+% 			while( ~finished )
+% 				old_result_list = new_result_list;
+% 				for c = 1:length(child_list)
+% 					for r = 1:length(result_list)
+% 						notvalid(r) = (adj_mat( result_list(r),child_list(c) )==1) && (adj_mat( child_list(c),result_list(r) )==1);
+% 					end
+% 					if (sum(notvalid) > 0)
+% 						if p_margin(child_list(c)) > sum(p_margin(result_list))
+% 							result_list = child_list(c);
+% 						end
+% 					else
+% 						result_list = [child_list(c),result_list];
+% 					end
+% 				end
+% 				new_result_list = sort(unique(result_list));
+% 				if isequal(new_result_list,old_result_list)
+% 					finished = true;
+% 					parent_list = new_result_list;
+% 					result = [result,parent_list];
+% 				end
+% 			end
+% 			
+% 			label = new_result_list;
+% 			back_propagate = true;
+%             
+%             % back_propagate
+%             % clamp the potential table and re-run message pass
+%             num_v = G.num_v;
+%             c_p_cell = hex_run.assign_potential(G, p_margin);
+%             c_p_cell = hex_run.clamp_potential(c_p_cell, G, label);
+%             c_m_cell = hex_run.pass_message(G, c_p_cell);
+%             [Pr_joint_margin, Z2, ~] = hex_run.marginalize(G, c_m_cell, c_p_cell);
+%   
+%             loss = log(p_margin(label));
+% %             gradients = Pr_joint_margin ./ Z2 - Pr_margin / Z;
+%             p_margin = Pr_joint_margin ./ max(Pr_joint_margin);
+% 			% [loss, gradients, p_margin, p0] = hex_run(G, p_margin, label, back_propagate);
+% 		
+% 		end
+% 		
+% 		result_total{data_id} = result;
+% 		% ----- decision tree end -----
+
         
         if scn_index == 94
             gt = [1,2,6,7];
@@ -258,3 +261,4 @@ for i = 1:40
         ', sum FP: ',num2str(cnt_FP_label(i))])
 end
 disp(['total mean accuracy: ',num2str(sum(cnt_ac_label)/sum(cnt_gt_label)),', sum FP: ',num2str(sum(cnt_FP_label))])
+save('151110result_decision_graph.mat','acc','FP','cnt_ac_label','cnt_gt_label','cnt_FP_label');
