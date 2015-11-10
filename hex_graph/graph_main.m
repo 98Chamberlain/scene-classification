@@ -111,9 +111,10 @@ for s_id = 1:use_scene
 %     fprintf('\n');
 %     fprintf('  label: %d\n', label);
     
-%     % run the hex graph
-%     back_propagate = true;
-%     [loss, gradients, p_margin, p0] = hex_run(G, sum_prob, label, back_propagate);
+    % run the hex graph
+    back_propagate = false;
+    label = 1;
+    [loss, gradients, p_margin, p0] = hex_run(G, sum_prob, label, back_propagate);
 %     state = G.c_s_cell{1};
 %     state_prob = state * p_margin;
 %     [~,I] = max(state_prob);
@@ -183,20 +184,20 @@ for s_id = 1:use_scene
 
 % result_total{data_id} = result;
 
-% ----- SVM feedback test -----
-label = gt_scene( scn_index );
-
-[m2,N]=size(data');
-fea_tmp=(data'-ones(m2,1)*mf)*nrm;
-[predicted, accuracy, d_values] = svmpredict(label , fea_tmp , model);
-
-label = predicted;
-back_propagate = true;
-[loss, gradients, p_margin, p0] = hex_run(G, sum_prob, label, back_propagate);
-
-feature = 1;
-result = searchBest_hr(adj_mat,(p_margin./max(p_margin)),feature,model,mf,nrm);
-% ----- SVM feedback test end -----
+% % ----- SVM feedback test -----
+% label = gt_scene( scn_index );
+% 
+% [m2,N]=size(data');
+% fea_tmp=(data'-ones(m2,1)*mf)*nrm;
+% [predicted, accuracy, d_values] = svmpredict(label , fea_tmp , model);
+% 
+% label = predicted;
+% back_propagate = true;
+% [loss, gradients, p_margin, p0] = hex_run(G, sum_prob, label, back_propagate);
+% 
+% feature = 1;
+% result = searchBest_hr(adj_mat,(p_margin./max(p_margin)),feature,model,mf,nrm);
+% % ----- SVM feedback test end -----
 
 
 %     % show the result
@@ -213,11 +214,11 @@ result = searchBest_hr(adj_mat,(p_margin./max(p_margin)),feature,model,mf,nrm);
 %         result = groundtruth{I};
         
         % use past structure to run the multi-label relation
-%         feature = 1;
-%         model = 1;
-%         mf = 1;
-%         nrm = 1;
-%         result = searchBest_hr(adj_mat,(p_margin./max(p_margin)),feature,model,mf,nrm);
+        feature = 1;
+        model = 1;
+        mf = 1;
+        nrm = 1;
+        result = searchBest_hr(adj_mat,(p_margin./max(p_margin)),feature,model,mf,nrm);
 
         if scn_index == 94
             gt = [1,2,6,7];

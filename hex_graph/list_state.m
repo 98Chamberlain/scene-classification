@@ -7,7 +7,7 @@ function G = list_state(G)
 %   G is the structure containing the whole HEX Graph
 
 % load groundtruth
-load('../gt_scene.mat');
+load('./gt_scene.mat');
 % groundtruth 1*40 cell
 % gt_scene 1*205 double
 

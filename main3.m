@@ -1,4 +1,5 @@
 close all; clear all;
+addpath(genpath('../hex_graph-master'));
 addpath('./prob_SVM/');
 addpath('../Research_Toolkit/SVM/libsvm-3.20/matlab');
 addpath(genpath('./'));
@@ -69,12 +70,16 @@ use_scene = length(root_s);
 % load prob & fc8 data
 % prob_data: 205 x 2000 x 205 (feature x data x scene)
 % fc8_data : 205 x 2000 x 205 (feature x data x scene)
-load('../feature_data_2000.mat'); % new 2000 data
+load('./statistic/feature_data.mat');
 
 % train SVM model for each label
-train_data = prob_data(:,1:train_amt,root_s);
+train_data = prob_data(:,:,root_s);
 train_data = train_data(:,:);
+train_amt = 128;
 [model,mf,nrm] = prob_SVM(train_data',train_amt);
+
+% load new 2000 data
+load('./feature_data_2000.mat'); % new 2000 data
 
 acc = [];
 FP = [];
@@ -94,13 +99,14 @@ for i = 1:use_scene
     disp(['----- now process ',num2str(i),'/',num2str(use_scene),' scene -----']);
     scn_index = root_s(i);
     
-%     for data_idx = 1:size(prob_data,2)
-%         data = prob_data(:,data_idx,scn_index);
-	f = dir(['../h5/multi_label_origin_prob_h5',total_label{scn_index+40,2},'/*.h5']);
-    for h5_idx = 1:length(f)
+    for data_idx = 1:size(prob_data,2)
+        data = prob_data(:,data_idx,scn_index);
+
+%     f = dir(['../h5/multi_label_origin_prob_h5',total_label{scn_index+40,2},'/*.h5']);
+%     for h5_idx = 1:length(f)
 	
         % calculate the probability of labels
-		data = hdf5read(['../h5/multi_label_origin_prob_h5',total_label{scn_index+40,2},'/',f(h5_idx).name],'prob');
+% 		data = hdf5read(['../h5/multi_label_origin_prob_h5',total_label{scn_index+40,2},'/',f(h5_idx).name],'prob');
 		sum_prob = sumProb_p(data);
         
 %         % without relation
@@ -180,7 +186,19 @@ for i = 1:use_scene
 			
 			label = new_result_list;
 			back_propagate = true;
-			[loss, gradients, p_margin, p0] = hex_run(G, sum_prob, label, back_propagate);
+            
+            % back_propagate
+            % clamp the potential table and re-run message pass
+            num_v = G.num_v;
+            c_p_cell = hex_run.assign_potential(G, p_margin);
+            c_p_cell = hex_run.clamp_potential(c_p_cell, G, label);
+            c_m_cell = hex_run.pass_message(G, c_p_cell);
+            [Pr_joint_margin, Z2, ~] = hex_run.marginalize(G, c_m_cell, c_p_cell);
+  
+            loss = log(p_margin(label));
+            gradients = Pr_joint_margin ./ Z2 - Pr_margin / Z;
+            p_margin = Pr_joint_margin ./ max(Pr_joint_margin);
+			% [loss, gradients, p_margin, p0] = hex_run(G, p_margin, label, back_propagate);
 		
 		end
 		% ----- decision tree end -----
