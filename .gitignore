@@ -26,3 +26,5 @@ slprj/
 *.bmp
 *.txt
 
+# swap file
+*.swp
