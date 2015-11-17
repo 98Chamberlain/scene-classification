@@ -1,4 +1,8 @@
-% close all; clear all;
+close all; clear all;
+% the test task name for saving the result file
+task_name = '151117result_decision_400';
+
+% load the tool
 addpath(genpath('../hex_graph-master'));
 addpath('./prob_SVM/');
 addpath('../Research_Toolkit/SVM/libsvm-3.20/matlab');
@@ -43,13 +47,6 @@ toc
 % Qualcomm label
 adj_mat = make_SceneMatrix();
 
-% read prob form .h5 file
-% load('./statistic/feature_data.mat');
-% fc8_testing_data = fc8_data(:,train_amt+1:data_len,:);
-% fc8_testing_data = fc8_testing_data(:,:);
-% prob_testing_data = prob_data(:,train_amt+1:data_len,:);
-% prob_testing_data = prob_testing_data(:,:);
-
 % set ground truth
 % groundtruth = {[1],[1,2],[1,3],[1,3,4],[1,5],[1,2,6],[1,2,7],[1,2,8],[1,2,9],[1,3,10],[1,3,4,11],[1,3,4,12],...
 %     [1,2,6,13],[1,2,6,14],[1,2,6,15],[1,2,6,16],[1,2,7,17],[1,2,7,18],[1,2,8,19],[1,2,8,20],[1,2,21],[1,2,22],...
@@ -57,7 +54,8 @@ adj_mat = make_SceneMatrix();
 %     [1,3,4,12,32],[1,3,4,12,33],[1,3,4,12,34],[1,3,4,12,35],[1,3,36],[1,3,37],[1,3,38],[1,3,39],[1,3,40]};
 load('./gt_scene.mat'); % gt_scene , groundtruth
 
-% children information
+% get children information
+% children: nLabel x 1 cell ( 40 x 1 in this case )
 children = children_run(adj_mat);
 
 % data pre-process
@@ -77,42 +75,42 @@ train_data = prob_data(:,:,root_s);
 train_data = train_data(:,:);
 train_amt = 128;
 % [model,mf,nrm] = prob_SVM(train_data',train_amt);
+% load pre-train model
 load('./model.mat');
 
 % load new 2000 data
-load('./feature_data_2000.mat'); % new 2000 data
+load('./feature_data_2000.mat'); % new 2000 data which is different from the feature_data
 
 test_amt = 400;
 acc = [];
 FP = [];
-tmp = repmat(root_s,[ (data_len-train_amt) , 1 ]);
-scn = tmp(:);
-scn = scn';
-scene_acc = zeros(205,1);
-scene_FP = zeros(205,1);
 time = [];
 cnt_gt_label = zeros(40,1);
 cnt_ac_label = zeros(40,1);
 cnt_FP_label = zeros(40,1);
-for i = 1:use_scene
-% for i = (123-1)*28+1:123*28
-% for i = 28:56
+
+for i = 1:use_scene % scene size
 
     disp(['----- now process ',num2str(i),'/',num2str(use_scene),' scene -----']);
     scn_index = root_s(i);
     
     % for data_id = 1:size(prob_data,2)
-    for data_id = 1:test_amt
+    for data_id = 1:test_amt % amount of test data
+	
+		% load test data from the new 2000 data
         data = prob_data(:,data_id,scn_index);
-
-%     f = dir(['../h5/ft_multi_label_cross_prob_h5',total_label{scn_index+40,2},'/*.h5']);
-%     for h5_idx = 1:length(f)
+		sum_prob = sumProb_p(data);
+		
+%	 % load the test data from the .h5 file after re-train structure
+%	 f = dir(['../h5/ft_multi_label_cross_prob_h5',total_label{scn_index+40,2},'/*.h5']);
+%	 for h5_idx = 1:length(f)
 	
         % calculate the probability of labels
-% 		data = hdf5read(['../h5/ft_multi_label_cross_prob_h5',total_label{scn_index+40,2},'/',f(h5_idx).name],'prob');
-		sum_prob = sumProb_p(data);
-%         sum_prob = data;
-        
+% 		sum_prob = hdf5read(['../h5/ft_multi_label_cross_prob_h5',total_label{scn_index+40,2},'/',f(h5_idx).name],'prob');
+
+
+
+% ----- Way 1: Don't use any relation -----
 %         % without relation
 %         [M,I] = max(data);
 %         if gt_scene(I) == 0
@@ -120,10 +118,8 @@ for i = 1:use_scene
 %         else
 %             result = groundtruth{gt_scene(I)};
 %         end
-        
-        % for test
-%         [~,~,p_margin,~] = hex_run(G, sum_prob, 1, false);
 
+% ----- Way 2: Just use the graph structure -----
 %         % use prob feature
 %         feature = 1;
 %         model = 1;
@@ -133,6 +129,7 @@ for i = 1:use_scene
 %         result = searchBest_hr(adj_mat,sum_prob,feature,model,mf,nrm);
 %         time = [time ,toc];
 
+% ----- Way 3: Decision tree -----
 		% ----- decision tree begin -----
 	    label = 1;
 		[loss, gradients, p_margin, p0] = hex_run(G, sum_prob, label, false);
@@ -141,9 +138,10 @@ for i = 1:use_scene
 		cont = true;
 		parent_list = 1;
 		while( cont )
+		
+			% load child list
 			child_list = [];
 			for p = 1:length(parent_list)
-				% child_list = [child_list , children{p}];
 				child_list = children{parent_list(p)};
 			end
 			child_list = unique(child_list);
@@ -159,9 +157,13 @@ for i = 1:use_scene
 			end
 			child_list = child_list(find(predict==1));
 			
+			% check whether to continue 
+			% ( if we meet the end of the tree or the result list of this layer is empty )
+			% finished: whether to continue to find the best result in this layer
+			% cont    : whether to move to next layer
 			if ~isempty(child_list)
-				result_list = child_list(1);
-				% check isvalid
+				result_list = child_list(1); % to initialize the result_list
+
 				finished = false;
 			else
 				finished = true;
@@ -202,17 +204,15 @@ for i = 1:use_scene
             c_m_cell = hex_run.pass_message(G, c_p_cell);
             [Pr_joint_margin, Z2, ~] = hex_run.marginalize(G, c_m_cell, c_p_cell);
   
-            % loss = log(p_margin(label));
-            % gradients = Pr_joint_margin ./ Z2 - Pr_margin / Z;
+			% normalize the result
             p_margin = Pr_joint_margin ./ max(Pr_joint_margin);
-			% [loss, gradients, p_margin, p0] = hex_run(G, p_margin, label, back_propagate);
 		
 		end
 		
 		result_total{data_id} = result;
 		% ----- decision tree end -----
 
-        
+        % ----- record the accuracy and the false positive -----
         if scn_index == 94
             gt = [1,2,6,7];
         elseif scn_index == 123
@@ -233,30 +233,13 @@ for i = 1:use_scene
         cnt_ac_label(intersect(result,gt)) = cnt_ac_label(intersect(result,gt))+1;
         cnt_FP_label(setdiff(result,intersect(result,gt))) = cnt_FP_label(setdiff(result,intersect(result,gt)))+1;
     end
-
-% % test
-% adj_mat = [0,1,1,1;
-%            0,0,1,1;
-%            0,1,0,1;
-%            1,1,1,0];
-% sum_prob = [0.5,0.3,0.2,0.5];
-% adj_mat = adj_mat(1:16,1:16);
-
-% ------- Brute force -------
-% result = searchBest_bf(adj_mat,sum_prob);
-
-% tic;
-% result = searchBest_hr(adj_mat,sum_prob);
-% result = searchBest_hr(adj_mat,sum_prob,feature,model,mf,nrm);
-% toc
-
-        % display(['the result is: ' , total_label(result,2)']);
         
 end
 
 % display the result
 for s_id = 1:use_scene
-disp(['scene ',num2str(s_id),' mean accuracy: ',num2str(mean(acc( floor((s_id-1)*test_amt+1:s_id*test_amt)))),', sum FP: ',num2str(sum(FP( floor((s_id-1)*test_amt+1:s_id*test_amt))))])
+	disp(['scene ',num2str(s_id),' mean accuracy: ',num2str(mean(acc( floor((s_id-1)*test_amt+1:s_id*test_amt)))),...
+	      ', sum FP: ',num2str(sum(FP( floor((s_id-1)*test_amt+1:s_id*test_amt))))])
 end
 disp(['total mean accuracy: ',num2str(mean(acc)),', sum FP: ',num2str(sum(FP))])
 
@@ -265,4 +248,6 @@ for i = 1:40
         ', sum FP: ',num2str(cnt_FP_label(i))])
 end
 disp(['total mean accuracy: ',num2str(sum(cnt_ac_label)/sum(cnt_gt_label)),', sum FP: ',num2str(sum(cnt_FP_label))])
-save('151110result_decision_400.mat','acc','FP','cnt_ac_label','cnt_gt_label','cnt_FP_label');
+
+% save the result
+save([task_name,'.mat'],'acc','FP','cnt_ac_label','cnt_gt_label','cnt_FP_label');
