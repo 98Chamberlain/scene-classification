@@ -94,19 +94,17 @@ for i = 1:use_scene % scene size
     disp(['----- now process ',num2str(i),'/',num2str(use_scene),' scene -----']);
     scn_index = root_s(i);
     
-    % for data_id = 1:size(prob_data,2)
-    for data_id = 1:test_amt % amount of test data
-	
-		% load test data from the new 2000 data
-        data = prob_data(:,data_id,scn_index);
-		sum_prob = sumProb_p(data);
+%     for data_id = 1:test_amt % amount of test data
+% 		% load test data from the new 2000 data
+%         data = prob_data(:,data_id,scn_index);
+% 		sum_prob = sumProb_p(data);
 		
-%	 % load the test data from the .h5 file after re-train structure
-%	 f = dir(['../h5/ft_multi_label_cross_prob_h5',total_label{scn_index+40,2},'/*.h5']);
-%	 for h5_idx = 1:length(f)
-	
+	 % load the test data from the .h5 file after re-train structure
+	 f = dir(['../h5/ft_multi_label_inv_prob_h5',total_label{scn_index+40,2},'/*.h5']);
+	 for h5_idx = 1:length(f)
+
         % calculate the probability of labels
-% 		sum_prob = hdf5read(['../h5/ft_multi_label_cross_prob_h5',total_label{scn_index+40,2},'/',f(h5_idx).name],'prob');
+		sum_prob = hdf5read(['../h5/ft_multi_label_cross_prob_h5',total_label{scn_index+40,2},'/',f(h5_idx).name],'prob');
 
 
 
@@ -120,97 +118,97 @@ for i = 1:use_scene % scene size
 %         end
 
 % ----- Way 2: Just use the graph structure -----
-%         % use prob feature
-%         feature = 1;
-%         model = 1;
-%         mf = 1;
-%         nrm = 1;
-%         tic
-%         result = searchBest_hr(adj_mat,sum_prob,feature,model,mf,nrm);
-%         time = [time ,toc];
+        % use prob feature
+        feature = 1;
+        model = 1;
+        mf = 1;
+        nrm = 1;
+        tic
+        result = searchBest_hr(adj_mat,sum_prob,feature,model,mf,nrm);
+        time = [time ,toc];
 
-% ----- Way 3: Decision tree -----
-		% ----- decision tree begin -----
-	    label = 1;
-		[loss, gradients, p_margin, p0] = hex_run(G, sum_prob, label, false);
-		
-		result = [1];
-		cont = true;
-		parent_list = 1;
-		while( cont )
-		
-			% load child list
-			child_list = [];
-			for p = 1:length(parent_list)
-				child_list = children{parent_list(p)};
-			end
-			child_list = unique(child_list);
-			
-			% Use SVM to predict each label
-			predict = [];
-			for child = 1:length(child_list)
-				c = child_list(child);
-				[m2,N]=size(data');
-				fea_tmp=(data'-ones(m2,1)*mf{c})*nrm{c};
-				[predicted, accuracy, d_values] = svmpredict(1 , fea_tmp , model{c});
-				predict = [predict,predicted];
-			end
-			child_list = child_list(find(predict==1));
-			
-			% check whether to continue 
-			% ( if we meet the end of the tree or the result list of this layer is empty )
-			% finished: whether to continue to find the best result in this layer
-			% cont    : whether to move to next layer
-			if ~isempty(child_list)
-				result_list = child_list(1); % to initialize the result_list
-
-				finished = false;
-			else
-				finished = true;
-				cont = false;
-			end
-			% begin check
-			new_result_list = [];
-    		while( ~finished )
-				old_result_list = new_result_list;
-				for c = 1:length(child_list)
-					for r = 1:length(result_list)
-						notvalid(r) = (adj_mat( result_list(r),child_list(c) )==1) && (adj_mat( child_list(c),result_list(r) )==1);
-					end
-					if (sum(notvalid) > 0)
-						if p_margin(child_list(c)) > sum(p_margin(result_list))
-							result_list = child_list(c);
-						end
-					else
-						result_list = [child_list(c),result_list];
-					end
-				end
-				new_result_list = sort(unique(result_list));
-				if isequal(new_result_list,old_result_list)
-					finished = true;
-					parent_list = new_result_list;
-					result = [result,parent_list];
-				end
-			end
-			
-			label = new_result_list;
-			back_propagate = true;
-            
-            % back_propagate
-            % clamp the potential table and re-run message pass
-            num_v = G.num_v;
-            c_p_cell = hex_run.assign_potential(G, p_margin);
-            c_p_cell = hex_run.clamp_potential(c_p_cell, G, label);
-            c_m_cell = hex_run.pass_message(G, c_p_cell);
-            [Pr_joint_margin, Z2, ~] = hex_run.marginalize(G, c_m_cell, c_p_cell);
-  
-			% normalize the result
-            p_margin = Pr_joint_margin ./ max(Pr_joint_margin);
-		
-		end
-		
-		result_total{data_id} = result;
-		% ----- decision tree end -----
+% % ----- Way 3: Decision tree -----
+% 		% ----- decision tree begin -----
+% 	    label = 1;
+% 		[loss, gradients, p_margin, p0] = hex_run(G, sum_prob, label, false);
+% 		
+% 		result = [1];
+% 		cont = true;
+% 		parent_list = 1;
+% 		while( cont )
+% 		
+% 			% load child list
+% 			child_list = [];
+% 			for p = 1:length(parent_list)
+% 				child_list = children{parent_list(p)};
+% 			end
+% 			child_list = unique(child_list);
+% 			
+% 			% Use SVM to predict each label
+% 			predict = [];
+% 			for child = 1:length(child_list)
+% 				c = child_list(child);
+% 				[m2,N]=size(data');
+% 				fea_tmp=(data'-ones(m2,1)*mf{c})*nrm{c};
+% 				[predicted, accuracy, d_values] = svmpredict(1 , fea_tmp , model{c});
+% 				predict = [predict,predicted];
+% 			end
+% 			child_list = child_list(find(predict==1));
+% 			
+% 			% check whether to continue 
+% 			% ( if we meet the end of the tree or the result list of this layer is empty )
+% 			% finished: whether to continue to find the best result in this layer
+% 			% cont    : whether to move to next layer
+% 			if ~isempty(child_list)
+% 				result_list = child_list(1); % to initialize the result_list
+% 
+% 				finished = false;
+% 			else
+% 				finished = true;
+% 				cont = false;
+% 			end
+% 			% begin check
+% 			new_result_list = [];
+%     		while( ~finished )
+% 				old_result_list = new_result_list;
+% 				for c = 1:length(child_list)
+% 					for r = 1:length(result_list)
+% 						notvalid(r) = (adj_mat( result_list(r),child_list(c) )==1) && (adj_mat( child_list(c),result_list(r) )==1);
+% 					end
+% 					if (sum(notvalid) > 0)
+% 						if p_margin(child_list(c)) > sum(p_margin(result_list))
+% 							result_list = child_list(c);
+% 						end
+% 					else
+% 						result_list = [child_list(c),result_list];
+% 					end
+% 				end
+% 				new_result_list = sort(unique(result_list));
+% 				if isequal(new_result_list,old_result_list)
+% 					finished = true;
+% 					parent_list = new_result_list;
+% 					result = [result,parent_list];
+% 				end
+% 			end
+% 			
+% 			label = new_result_list;
+% 			back_propagate = true;
+%             
+%             % back_propagate
+%             % clamp the potential table and re-run message pass
+%             num_v = G.num_v;
+%             c_p_cell = hex_run.assign_potential(G, p_margin);
+%             c_p_cell = hex_run.clamp_potential(c_p_cell, G, label);
+%             c_m_cell = hex_run.pass_message(G, c_p_cell);
+%             [Pr_joint_margin, Z2, ~] = hex_run.marginalize(G, c_m_cell, c_p_cell);
+%   
+% 			% normalize the result
+%             p_margin = Pr_joint_margin ./ max(Pr_joint_margin);
+% 		
+% 		end
+% 		
+% 		result_total{data_id} = result;
+% 		% ----- decision tree end -----
 
         % ----- record the accuracy and the false positive -----
         if scn_index == 94
