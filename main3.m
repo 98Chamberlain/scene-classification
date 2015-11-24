@@ -104,7 +104,7 @@ for i = 1:use_scene % scene size
 	 for h5_idx = 1:length(f)
 
         % calculate the probability of labels
-		sum_prob = hdf5read(['../h5/ft_multi_label_cross_prob_h5',total_label{scn_index+40,2},'/',f(h5_idx).name],'prob');
+		sum_prob = hdf5read(['../h5/ft_multi_label_inv_prob_h5',total_label{scn_index+40,2},'/',f(h5_idx).name],'prob');
 
 
 
