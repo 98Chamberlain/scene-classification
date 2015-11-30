@@ -50,8 +50,16 @@ lb_tmp = tmp(:);
 
 features = training_SR;
 for i = 1:nLabel
-    label = gt( lb_tmp , i);
-    [model{i},mf{i},nrm{i}] = training_svm( features , label );
+    if ~exist(['./model_4000/model_',num2str(i),'.mat'])
+        label = gt( lb_tmp , i);
+        [model_tmp,mf_tmp,nrm_tmp] = training_svm( features , label );
+        save(['./model_4000/model_',num2str(i),'.mat'],'model_tmp','mf_tmp','nrm_tmp');
+    else
+        load(['./model_4000/model_',num2str(i),'.mat']);
+    end
+    model{i} = model_tmp;
+    mf{i} = mf_tmp;
+    nrm{i} = nrm_tmp;
 end
 
 end

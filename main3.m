@@ -1,6 +1,6 @@
 close all; clear all;
 % the test task name for saving the result file
-task_name = '151117result_decision_400';
+task_name = '151124result_inv_fc8';
 
 % load the tool
 addpath(genpath('../hex_graph-master'));
@@ -68,15 +68,32 @@ use_scene = length(root_s);
 % load prob & fc8 data
 % prob_data: 205 x 2000 x 205 (feature x data x scene)
 % fc8_data : 205 x 2000 x 205 (feature x data x scene)
-load('./statistic/feature_data.mat');
+% load('./statistic/feature_data.mat');
 
-% train SVM model for each label
-train_data = prob_data(:,:,root_s);
-train_data = train_data(:,:);
-train_amt = 128;
-% [model,mf,nrm] = prob_SVM(train_data',train_amt);
-% load pre-train model
-load('./model.mat');
+% % train SVM model for each label
+% train_data = fc7_train;
+% train_data = train_data(:,:);
+% train_amt = 640;
+model_path = './fc7_model.mat';
+if ~exist(model_path)
+
+    % fc7_train: 4096 x 128 x 174
+    load('./PlacesCNN_train_fc7.mat');
+    train_amt = 128;
+    train_data = fc7_train(:,1:train_amt,:);
+    train_data = train_data(:,:);
+    clear fc7_train
+
+    % train the pre-train SVM model
+    [model,mf,nrm] = prob_SVM(train_data',train_amt);
+    save('./fc7_model.mat','model','mf','nrm');
+
+else
+    % load pre-train model
+    load(model_path);
+end
+
+pause
 
 % load new 2000 data
 load('./feature_data_2000.mat'); % new 2000 data which is different from the feature_data
@@ -100,11 +117,11 @@ for i = 1:use_scene % scene size
 % 		sum_prob = sumProb_p(data);
 		
 	 % load the test data from the .h5 file after re-train structure
-	 f = dir(['../h5/ft_multi_label_inv_prob_h5',total_label{scn_index+40,2},'/*.h5']);
+	 f = dir(['../h5/ft_multi_label_inv_fc8_h5',total_label{scn_index+40,2},'/*.h5']);
 	 for h5_idx = 1:length(f)
 
         % calculate the probability of labels
-		sum_prob = hdf5read(['../h5/ft_multi_label_inv_prob_h5',total_label{scn_index+40,2},'/',f(h5_idx).name],'prob');
+		sum_prob = hdf5read(['../h5/ft_multi_label_inv_fc8_h5',total_label{scn_index+40,2},'/',f(h5_idx).name],'fc8');
 
 
 
