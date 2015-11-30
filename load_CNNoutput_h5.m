@@ -18,9 +18,9 @@ fc7_train = zeros(4096,train_amt,use_scene);
 
 for i = 1:use_scene
 	scene_idx = root_s(i);
-	file = dir(['/home/ponu/Documents/h5/PlacesCNN_train_prob_h5/',cell2mat(list(scene_idx)),'/*.h5']);
+	% file = dir(['/home/ponu/Documents/h5/PlacesCNN_train_prob_h5/',cell2mat(list(scene_idx)),'/*.h5']);
     % fc8_file = dir(['/home/ponu/Documents/h5/PlacesCNN_fc8_h5/',cell2mat(list(scene_idx)),'/*.h5']);
-	% fc7_file = dir(['/home/ponu/Documents/h5/PlacesCNN_fc7_h5/',cell2mat(list(scene_idx)),'/*.h5']);
+	fc7_file = dir(['/home/ponu/Documents/h5/PlacesCNN_train_fc7_h5/',cell2mat(list(scene_idx)),'/*.h5']);
 	% fc6_file = dir(['/home/ponu/Documents/h5/PlacesCNN_fc6_h5/',cell2mat(list(scene_idx)),'/*.h5']);
 	
 	for j = 1:train_amt
